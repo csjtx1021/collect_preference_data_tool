@@ -9,9 +9,22 @@ import time, datetime
 import tkinter as tk
 import tkinter.messagebox as mb
 import numpy as np
+import argparse
 
+parser = argparse.ArgumentParser(description='CAND')
+parser.add_argument('--TG', type=int, help='please choose the test group')
 
 if __name__ == "__main__":
+    
+    args = parser.parse_args()
+    
+    seed = 666
+    
+    Test_Group = args.TG
+    max_each_num_tests = 50
+    max_all_num_tests = 500
+    
+    random.seed(seed)
     
     dateArray = datetime.datetime.utcfromtimestamp(time.time())
     start_time_str = dateArray.strftime("%Y--%m--%d %H:%M:%S")
@@ -25,17 +38,26 @@ if __name__ == "__main__":
     
     #target = 'intensity' #'intensity' 'pleasantness' 'familiarity'
     
-    same_dilution = None #None 'low' 'high'
+    #same_dilution = None #None 'low' 'high'
     
     data = pd.read_excel(data_path,sheet_name=sheetname,header=0)
     
     unique_cid_list = list(set([cid for cid in data['cid']]))
     
-    result_dict = {'subject_id':[],'trial_data':[],'smi':[],'cid':[],'dilution':[],'intensity':[],'pleasantness':[],'familiarity':[],'preference_intensity':[],'preference_pleasantness':[],'preference_familiarity':[]}
+    result_dict = {'subject_id':[],'trial_data':[],'smi':[],'cid':[],'dilution':[],'intensity':[],'pleasantness':[],'familiarity':[],'dist_intensity':[],'dist_pleasantness':[],'dist_familiarity':[],'preference_intensity':[],'preference_pleasantness':[],'preference_familiarity':[]}
+    
+    mols_cids = random.sample(unique_cid_list, 2)
+        
+    all_pairs_list = []
+    for _ in range(max_all_num_tests):
+        all_pairs_list.append(random.sample(unique_cid_list, 2))
     
     count = 0
-    while True:
-        mols_cids = random.sample(unique_cid_list, 2)
+    for mols_cids in all_pairs_list[(Test_Group-1)*max_each_num_tests:Test_Group*max_each_num_tests]:
+        
+        count += 1
+        
+        #mols_cids = random.sample(unique_cid_list, 2)
         
         dateArray = datetime.datetime.utcfromtimestamp(time.time())
         time_str = dateArray.strftime("%Y--%m--%d %H:%M:%S")
@@ -46,11 +68,14 @@ if __name__ == "__main__":
         
         smell_list=[]
         
+        same_dilution = random.sample(['low','high'], 1)[0]
+        
         for mol_cid in mols_cids:
             #process a molecule
             data_temp = data[data['cid']==mol_cid]
             smi = data_temp.iloc[0].at['smi']
             unique_dilution_list = list(set([dilution for dilution in data_temp['dilution']]))
+            
             if same_dilution is None:
                 dilution = random.sample(unique_dilution_list, 1)[0]
             elif same_dilution == 'low':
@@ -74,10 +99,14 @@ if __name__ == "__main__":
             result_dict['trial_data'].append(time_str)
             result_dict['smi'].append(smi)
             result_dict['cid'].append(mol_cid)
-            result_dict['dilution'].append(dilution)
+            #result_dict['dilution'].append(dilution)
+            result_dict['dilution'].append(same_dilution)
             result_dict['intensity'].append(data_temp_temp.iloc[0].at['intensity'])
             result_dict['pleasantness'].append(data_temp_temp.iloc[0].at['pleasantness'])
             result_dict['familiarity'].append(data_temp_temp.iloc[0].at['familiarity'])
+            result_dict['dist_intensity'].append(0)
+            result_dict['dist_pleasantness'].append(0)
+            result_dict['dist_familiarity'].append(0)
             result_dict['preference_intensity'].append(0)
             result_dict['preference_pleasantness'].append(0)
             result_dict['preference_familiarity'].append(0)
@@ -110,7 +139,7 @@ if __name__ == "__main__":
         #--------------
         window = tk.Tk()
 
-        window.title('My Window')
+        window.title("Doing %s/%s tests"%(count,max_each_num_tests))
 
         window.geometry('1200x800')
         
@@ -155,6 +184,9 @@ if __name__ == "__main__":
             vsb = tk.Scrollbar(help, orient="vertical", command=canvas_help.yview)
             canvas_help.configure(yscrollcommand=vsb.set)
             vsb.pack(side="right", fill="y")
+            vsb_x = tk.Scrollbar(help, orient="horizontal", command=canvas_help.xview)
+            canvas_help.configure(xscrollcommand=vsb_x.set)
+            vsb_x.pack(side="bottom", fill="x")
             canvas_help.pack(side="left", fill="both", expand=True)
             canvas_help.create_window((4,4), window=frame, anchor="nw")
 
@@ -175,19 +207,80 @@ if __name__ == "__main__":
             tk.Label(frame, text="Specific interpretation of descriptors", bg="#87CEFA", width=100, height=2).pack()
 
             text_1 = tk.Text(frame,bg="#DCDCDC")
-            text_1.insert("insert", "I love ")
+            text_1.insert("insert", "-EDIBLE: suitable or safe for eating or fit to be eaten (often used to contrast with unpalatable or poisonous varieties) ")
+            text_1.insert("insert", r"-可食用的: 适合或安全食用或适合食用（通常用于与不好吃或有毒的味道形成对比）")
             text_1.insert("insert", "\r\n")
-            text_1.insert("insert", "a new line ")
+            text_1.insert("insert", "-BAKERY: an establishment that produces and sells flour-based food baked in an oven such as bread, cookies, cakes, pastries, and pies")
+            text_1.insert("insert", r"-面包店味: 生产和销售面粉食品的机构，这些食品是在烤箱中烘焙的，如面包、饼干、蛋糕、糕点和馅饼")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-SWEET: having the pleasant taste characteristic of sugar or honey; not salt, sour, or bitter")
+            text_1.insert("insert", r"-甜味: 有糖或蜂蜜特有的愉快的味道；不含盐、酸或苦")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-FRUIT: normally means the fleshy seed-associated structures of a plant that are sweet or sour, and edible in the raw state, such as apples, bananas, grapes, lemons, oranges, and strawberries")
+            text_1.insert("insert", r"-水果味: 通常指植物的肉质种子相关结构，甜或酸，在生态下可食，如苹果、香蕉、葡萄、柠檬、桔子和草莓")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-FISH: the characteristic aroma and flavor of very fresh fish and other seafoods are very delicate, and lack the pronounced fishiness found in less fresh products")
+            text_1.insert("insert", r"-鱼腥味: 非常新鲜的鱼和其他海产品的特征香气和味道非常细腻，在较少的新鲜海鲜中缺少明显的鱼腥味")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-GARLIC: Garlic is a species in the onion genus, Allium. Its close relatives include the onion, shallot, leek, chive, and Chinese onion")
+            text_1.insert("insert", r"-蒜味: 大蒜是洋葱属的一种植物。它的近亲包括洋葱、葱、韭菜、韭菜和洋葱")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-SPICES: A spice is primarily used for flavoring, coloring or preserving food. Spices includes black pepper, cinnamon (and the cheaper alternative cassia), cumin, nutmeg, ginger, cloves, etc.")
+            text_1.insert("insert", r"-香辛料味: 香料主要用于调味、着色或保存食物。香料包括黑胡椒、肉桂（以及更便宜的肉桂）、孜然、肉豆蔻、姜、丁香等")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-COLD: ice, ice cream, etc.")
+            text_1.insert("insert", r"-冷: 例如 冰、冰淇凌、凉气等")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-SOUR: having an acid taste like lemon or vinegar")
+            text_1.insert("insert", r"-酸味、酸腐味: 有柠檬或醋的酸味、或纳豆")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-BURNT: (of a fire) flame or glow while consuming a material such as coal or wood")
+            text_1.insert("insert", r"-烧焦、烤焦味")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-ACID")
+            text_1.insert("insert", r"-酸味")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-WARM")
+            text_1.insert("insert", r"-温和、温暖")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-MUSKY")
+            text_1.insert("insert", r"-麝香味")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-SWEATY")
+            text_1.insert("insert", r"-汗味")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-AMMONIA/URINOUS")
+            text_1.insert("insert", r"-氨气、氨水、尿骚味")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-DECAYED")
+            text_1.insert("insert", r"-腐败、腐烂味")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-WOOD")
+            text_1.insert("insert", r"-木头、木制品味")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-GRASS")
+            text_1.insert("insert", r"-草、草地味")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-FLOWER")
+            text_1.insert("insert", r"-花味")
+            text_1.insert("insert", "\r\n")
+            text_1.insert("insert", "-CHEMICAL")
+            text_1.insert("insert", r"-化学制品味")
+            text_1.insert("insert", "\r\n")
             text_1["state"] = tk.DISABLED
             text_1.pack()
                      
             tk.Label(frame, text="Questions to be answered", bg="#87CEFA", width=100, height=2).pack()
 
-
             text_2 = tk.Text(frame,bg="#DCDCDC")
-            text_2.insert("insert", "I love ")
+            text_2.insert("insert", "Q1. Please choose your preference on intensity: Choose which flavor you think has a stronger odor")
+            text_2.insert("insert", r"选择你认为两者中更强烈、更刺激的气味")
             text_2.insert("insert", "\r\n")
-            text_2.insert("insert", "a new line ")
+            text_2.insert("insert", "Q2. Please choose your preference on pleasantness: Choose which flavor you think is more pleasant")
+            text_2.insert("insert", r"选择你认为两者中更愉悦、更喜欢、更好闻的气味")
+            text_2.insert("insert", "\r\n")
+            text_2.insert("insert", "Q3. Please choose your preference on familiarity: Choose the flavor you think is more friendly and familiar")
+            text_2.insert("insert", r"选择你认为两者中更亲和、更熟悉的气味")
             text_2["state"] = tk.DISABLED
             text_2.pack()
         
@@ -361,12 +454,18 @@ if __name__ == "__main__":
         result_dict['preference_pleasantness'][preference_pleasantness-3]=1
         result_dict['preference_familiarity'][preference_familiarity-3]=1
         
-        count += 1
-        print("Congratulations! You have done %s tests, good job!"%count)
+        result_dict['dist_intensity'][-2]=abs(result_dict['intensity'][-2]-result_dict['intensity'][-1])
+        result_dict['dist_pleasantness'][-2]=abs(result_dict['pleasantness'][-2]-result_dict['pleasantness'][-1])
+        result_dict['dist_familiarity'][-2]=abs(result_dict['familiarity'][-2]-result_dict['familiarity'][-1])
+        result_dict['dist_intensity'][-1]=abs(result_dict['intensity'][-2]-result_dict['intensity'][-1])
+        result_dict['dist_pleasantness'][-1]=abs(result_dict['pleasantness'][-2]-result_dict['pleasantness'][-1])
+        result_dict['dist_familiarity'][-1]=abs(result_dict['familiarity'][-2]-result_dict['familiarity'][-1])
+        
+        print("Congratulations! You have done %s/%s tests, good job!"%(count,max_each_num_tests))
 
         result_data = pd.DataFrame(result_dict)
         #save collected file
-        result_data.to_excel("collected_data/collected_preference_data_%s_%s.xlsx"%(subject_id,start_time_str))
+        result_data.to_excel("collected_data/collected_preference_data_g%s_u%s_%s.xlsx"%(Test_Group,subject_id,start_time_str))
 
 
     

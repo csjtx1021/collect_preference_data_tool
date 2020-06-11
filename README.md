@@ -16,7 +16,9 @@
     
 ### Now, you can enjoy it by running:
 
-    $$ bash run.sh
+    $$ python collect_preference_data.py --TG=[your test group number]
+
+### Importantly, you should also input your test group number.
 
 ## NOTE: If you are using this tool for the first time, please first click the ``Show help message" button in the upper right corner of the GUI to quickly understand how to use it.
 
