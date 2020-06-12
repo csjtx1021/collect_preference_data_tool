@@ -465,7 +465,7 @@ if __name__ == "__main__":
 
         result_data = pd.DataFrame(result_dict)
         #save collected file
-        result_data.to_excel("collected_data/collected_preference_data_g%s_u%s_%s.xlsx"%(Test_Group,subject_id,start_time_str))
+        result_data.to_excel("collected_data/collected_preference_data_g%s_u%s_%s.xlsx"%(Test_Group,subject_id,time.time()))
 
 
     
